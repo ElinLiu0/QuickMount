@@ -1,0 +1,1 @@
+pyinstaller -F --hidden-import=psutil quick_mount.py 
