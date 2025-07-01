@@ -28,30 +28,43 @@ def ListAllRemovableDrivers() -> List[str]:
 def run_sudo_wsl(cmd_str: str, password: str, distro: Optional[str] = None) -> None:
     """
     Run a string of commands under one sudo invocation in WSL, passing the password via stdin.
+    Args:
+        cmd_str (str): The extra wsl command line need to be executed.
+        password (str): The sudo password for WSL.
+        distro (Optional[str]): The WSL distribution name, if specified.
+    Raises:
+        subprocess.CalledProcessError: If the command fails.
     """
-    base = ['wsl']
+    base:List[str] = ['wsl']
     if distro:
         base += ['-d', distro]
     # Use shell to chain commands
     base += ['sudo', '-S', 'sh', '-c', cmd_str]
-    proc = subprocess.Popen(base, stdin=subprocess.PIPE, text=True)
+    proc:subprocess.Popen = subprocess.Popen(base, stdin=subprocess.PIPE, text=True)
     proc.communicate(password + '\n')
     if proc.returncode != 0:
         raise subprocess.CalledProcessError(proc.returncode, base)
 
 
 def MountAll(WSLDistroName: Optional[str] = None) -> None:
-    RemovableDrivers = ListAllRemovableDrivers()
+    """
+    Mount all removable drivers from Windows NT to WSL.
+    Args:
+        WSLDistroName (Optional[str]): The WSL distribution name, if specified.
+    Raises:
+        subprocess.CalledProcessError: If the mount command fails.
+    """
+    RemovableDrivers:List[str] = ListAllRemovableDrivers()
     if not RemovableDrivers:
         print("No removable drives found.")
         return
 
-    password = getpass.getpass("Enter sudo password for WSL: ")
+    password:str = getpass.getpass("Enter sudo password for WSL: ")
 
     for drv in RemovableDrivers:
-        letter = drv[0].lower()
-        mount_point = f"/mnt/{letter}"
-        cmd = f"mkdir -p {mount_point} && mount -t drvfs {drv} {mount_point}"
+        letter:str = drv[0].lower()
+        mount_point:str = f"/mnt/{letter}"
+        cmd:str = f"mkdir -p {mount_point} && mount -t drvfs {drv} {mount_point}"
         print(f"Mounting {drv} at {mount_point}")
         try:
             run_sudo_wsl(cmd, password, WSLDistroName)
@@ -62,17 +75,24 @@ def MountAll(WSLDistroName: Optional[str] = None) -> None:
 
 
 def UnmountAll(WSLDistroName: Optional[str] = None) -> None:
-    RemovableDrivers = ListAllRemovableDrivers()
+    """
+    Unmount all removable drivers from WSL and delete their mount points.
+    Args:
+        WSLDistroName (Optional[str]): The WSL distribution name, if specified.
+    Raises:
+        subprocess.CalledProcessError: If the unmount command fails.
+    """
+    RemovableDrivers:List[str] = ListAllRemovableDrivers()
     if not RemovableDrivers:
         print("No removable drives found.")
         return
 
-    password = getpass.getpass("Enter sudo password for WSL: ")
+    password:str = getpass.getpass("Enter sudo password for WSL: ")
 
     for drv in RemovableDrivers:
-        letter = drv[0].lower()
-        mount_point = f"/mnt/{letter}"
-        cmd = f"umount {mount_point} && rm -rf {mount_point}"
+        letter:str = drv[0].lower()
+        mount_point:str = f"/mnt/{letter}"
+        cmd:str = f"umount {mount_point} && rm -rf {mount_point}"
         print(f"Unmounting {drv} from {mount_point}")
         try:
             run_sudo_wsl(cmd, password, WSLDistroName)
@@ -83,12 +103,12 @@ def UnmountAll(WSLDistroName: Optional[str] = None) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Mount/unmount all removable drives to WSL.")
+    parser:argparse.ArgumentParser = argparse.ArgumentParser(description="Mount/unmount all removable drives to WSL.")
     parser.add_argument('-d', '--distro', type=str, help="WSL distro name.")
-    group = parser.add_mutually_exclusive_group(required=True)
+    group:argparse._MutuallyExclusiveGroup = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-m', '--mount', action='store_true', help="Mount drives.")
     group.add_argument('-u', '--unmount', action='store_true', help="Unmount drives.")
-    args = parser.parse_args()
+    args:argparse.Namespace = parser.parse_args()
 
     if args.mount:
         MountAll(args.distro)
